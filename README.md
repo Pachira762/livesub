@@ -7,11 +7,17 @@
 https://github.com/Pachira762/livesub/assets/34003267/3ec1d82b-6529-4918-b9fd-54bccbabf99b
 
 
+## インストール
+
+- NVIDIA GTX1060 以上のグラフィックボードが必須です。
+- [CUDA](https://developer.nvidia.com/cuda-downloads) をインストールしてください。
+- [Releases](https://github.com/Pachira762/livesub/releases/latest) からダウンロードしたzipファイルをお好きな場所に展開してください。
+- アンインストールするにはフォフォルダごと削除してください。
+
 
 ## 使い方
 
-- NVIDIA GTX1060 以上のグラフィックボードが必須です。
-- 起動するとモデルのダウンロードが開始します。少々お待ちください。  
+- 初回起動時にはモデルのダウンロードが開始します。少々お待ちください。  
 - ウィンドウはドラッグで移動できます。
 - ```ESCAPE``` キーでウィンドウを閉じます。
 - 右クリックでメニューが開きます。 使用するモデルや遅延の量、背景の透過度、フォントなどが変えられます。
