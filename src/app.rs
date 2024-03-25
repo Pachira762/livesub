@@ -69,9 +69,9 @@ impl WinApp for App {
                 config.model == Model::DistilMediumEn,
             )?
             .add_radio(
-                ModelDistilLargeV2,
-                "distil-large-v2",
-                config.model == Model::DistilLargeV2,
+                ModelDistilLargeV3,
+                "distil-large-v3",
+                config.model == Model::DistilLargeV3,
             )?
             // .add_radio(
             //     ModelWhisperLargeV3,
@@ -235,7 +235,7 @@ impl WinApp for App {
                 self.on_close();
                 _ = DestroyWindow(self.hwnd);
             },
-            ModelDistilSmallEn | ModelDistilMediumEn | ModelDistilLargeV2 | ModelWhisperLargeV3 => {
+            ModelDistilSmallEn | ModelDistilMediumEn | ModelDistilLargeV3 | ModelWhisperLargeV3 => {
                 self.config.model = id.into();
             }
             DelayNone | DelayLow | DelayMid | DelayHigh | DelayHighest => {
@@ -331,7 +331,7 @@ fn transcribe_proc_(
                     transcriber.clear();
                     clear_text(&text_stream);
                 }
-                ModelDistilSmallEn | ModelDistilMediumEn | ModelDistilLargeV2
+                ModelDistilSmallEn | ModelDistilMediumEn | ModelDistilLargeV3
                 | ModelWhisperLargeV3 => {
                     let model: Model = id.into();
                     update_model(&mut transcriber, model.repo_id(), &text_stream)?;

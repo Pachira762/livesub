@@ -8,7 +8,7 @@ pub enum Command {
     Quit,
     ModelDistilSmallEn,
     ModelDistilMediumEn,
-    ModelDistilLargeV2,
+    ModelDistilLargeV3,
     ModelWhisperLargeV3,
     DelayNone,
     DelayLow,
@@ -47,7 +47,7 @@ impl From<Command> for Model {
         match value {
             ModelDistilSmallEn => Model::DistilSmallEn,
             ModelDistilMediumEn => Model::DistilMediumEn,
-            ModelDistilLargeV2 => Model::DistilLargeV2,
+            ModelDistilLargeV3 => Model::DistilLargeV3,
             ModelWhisperLargeV3 => Model::WhisperLargeV3,
             _ => Default::default(),
         }

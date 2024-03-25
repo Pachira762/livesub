@@ -10,8 +10,8 @@ pub enum Model {
     DistilSmallEn,
     #[strum(serialize = "distil-whisper/distil-medium.en")]
     DistilMediumEn,
-    #[strum(serialize = "distil-whisper/distil-large-v2")]
-    DistilLargeV2,
+    #[strum(serialize = "distil-whisper/distil-large-v3")]
+    DistilLargeV3,
     #[strum(serialize = "openai/whisper-large-v3")]
     WhisperLargeV3,
 }
