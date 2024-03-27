@@ -3,8 +3,6 @@ use candle_transformers::models::whisper::{self as m, HOP_LENGTH as N_HOP, N_FFT
 use rustfft::{num_complex::Complex32 as Complex, Fft, FftPlanner};
 use std::{f32::consts::PI, sync::Arc};
 
-use super::common::Shiftable;
-
 const N_FILTER: usize = (N_FFT / 2) + 1;
 const N_FRAMES: usize = m::N_FRAMES;
 const N_BUF: usize = N_FRAMES / 30;
@@ -57,7 +55,7 @@ impl MelSpectrogram {
         self.pcm_to_mel(n_frames);
 
         let n_samples = num_samples(n_frames);
-        self.samples.shift(n_samples - (N_FFT - N_HOP));
+        _ = self.samples.drain(..(n_samples - (N_FFT - N_HOP)));
 
         MelDecodeResult {
             n_frames,

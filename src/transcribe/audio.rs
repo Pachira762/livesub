@@ -5,8 +5,6 @@ use windows::Win32::{
     System::Com::*,
 };
 
-use super::common::Shiftable;
-
 pub struct AudioBuffer {
     capture: AudioCapture,
     resampler: SincFixedOut<f32>,
@@ -50,7 +48,7 @@ impl AudioBuffer {
         self.capture.capture(&mut self.buffer)?;
 
         let (n_in, n_out) = self.resample()?;
-        self.buffer.shift(n_in);
+        _ = self.buffer.drain(..n_in);
 
         Ok(&self.resampled[..n_out])
     }

@@ -6,7 +6,6 @@ use windows::Win32::Graphics::Direct2D::{
     D2D1CreateFactory, ID2D1Bitmap1, ID2D1Device1, ID2D1DeviceContext, ID2D1Factory2,
     D2D1_DEVICE_CONTEXT_OPTIONS_NONE, D2D1_FACTORY_TYPE_SINGLE_THREADED,
 };
-use windows::Win32::Graphics::Direct3D11::D3D11_CREATE_DEVICE_DEBUG;
 use windows::Win32::Graphics::DirectComposition::{
     DCompositionCreateDevice, IDCompositionDevice, IDCompositionTarget,
 };
@@ -19,8 +18,7 @@ use windows::Win32::Graphics::Dxgi::Common::{
 };
 use windows::Win32::Graphics::Dxgi::{
     CreateDXGIFactory2, IDXGIDevice, IDXGIFactory2, IDXGISurface2, IDXGISwapChain1,
-    DXGI_CREATE_FACTORY_DEBUG, DXGI_SWAP_CHAIN_DESC1, DXGI_SWAP_EFFECT_FLIP_DISCARD,
-    DXGI_USAGE_RENDER_TARGET_OUTPUT,
+    DXGI_SWAP_CHAIN_DESC1, DXGI_SWAP_EFFECT_FLIP_DISCARD, DXGI_USAGE_RENDER_TARGET_OUTPUT,
 };
 use windows::Win32::Graphics::{
     Direct3D::D3D_DRIVER_TYPE_HARDWARE,
@@ -62,7 +60,7 @@ impl Device {
                 None,
                 D3D_DRIVER_TYPE_HARDWARE,
                 None,
-                D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG,
+                D3D11_CREATE_DEVICE_BGRA_SUPPORT,
                 None,
                 D3D11_SDK_VERSION,
                 Some(&mut device_3d),
@@ -71,7 +69,7 @@ impl Device {
             )?;
             let device_3d = device_3d.unwrap();
             let device_dxgi: IDXGIDevice = device_3d.cast()?;
-            let factory_dxgi: IDXGIFactory2 = CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG)?;
+            let factory_dxgi: IDXGIFactory2 = CreateDXGIFactory2(0)?;
 
             let (width, height) = {
                 let mut rc = RECT::default();

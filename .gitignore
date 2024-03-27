@@ -16,3 +16,5 @@ Cargo.lock
 icon.clip
 icon.png
 livesub.ini
+about.toml
+about.hbs
