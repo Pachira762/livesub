@@ -18,7 +18,8 @@ use windows::Win32::Graphics::Dxgi::Common::{
 };
 use windows::Win32::Graphics::Dxgi::{
     CreateDXGIFactory2, IDXGIDevice, IDXGIFactory2, IDXGISurface2, IDXGISwapChain1,
-    DXGI_SWAP_CHAIN_DESC1, DXGI_SWAP_EFFECT_FLIP_DISCARD, DXGI_USAGE_RENDER_TARGET_OUTPUT,
+    DXGI_CREATE_FACTORY_FLAGS, DXGI_PRESENT, DXGI_SWAP_CHAIN_DESC1, DXGI_SWAP_CHAIN_FLAG,
+    DXGI_SWAP_EFFECT_FLIP_DISCARD, DXGI_USAGE_RENDER_TARGET_OUTPUT,
 };
 use windows::Win32::Graphics::{
     Direct3D::D3D_DRIVER_TYPE_HARDWARE,
@@ -69,7 +70,7 @@ impl Device {
             )?;
             let device_3d = device_3d.unwrap();
             let device_dxgi: IDXGIDevice = device_3d.cast()?;
-            let factory_dxgi: IDXGIFactory2 = CreateDXGIFactory2(0)?;
+            let factory_dxgi: IDXGIFactory2 = CreateDXGIFactory2(DXGI_CREATE_FACTORY_FLAGS(0))?;
 
             let (width, height) = {
                 let mut rc = RECT::default();
@@ -106,8 +107,10 @@ impl Device {
 
             let factory_2d: ID2D1Factory2 =
                 D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, None)?;
-            let device_2d = factory_2d.CreateDevice2(&device_dxgi)?;
-            let dc = device_2d.CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE)?;
+            let device_2d = factory_2d.CreateDevice(&device_dxgi)?;
+            let dc: ID2D1DeviceContext = device_2d
+                .CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE)?
+                .cast()?;
 
             dc.SetTarget(&create_target(&swap_chain, &dc)?);
 
@@ -144,7 +147,10 @@ impl Device {
     pub fn end_draw(&self) -> Result<()> {
         unsafe {
             self.dc.EndDraw(None, None)?;
-            self.swap_chain.Present(1, 0).ok().map_err(E::msg)
+            self.swap_chain
+                .Present(1, DXGI_PRESENT(0))
+                .ok()
+                .map_err(E::msg)
         }
     }
 
@@ -152,8 +158,13 @@ impl Device {
         unsafe {
             self.dc.SetTarget(None);
 
-            self.swap_chain
-                .ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0)?;
+            self.swap_chain.ResizeBuffers(
+                0,
+                width,
+                height,
+                DXGI_FORMAT_UNKNOWN,
+                DXGI_SWAP_CHAIN_FLAG(0),
+            )?;
 
             self.dc
                 .SetTarget(&create_target(&self.swap_chain, &self.dc)?);

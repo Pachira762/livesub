@@ -3,6 +3,7 @@ use windows::{
     core::*,
     Foundation::Numerics::Matrix3x2,
     Win32::{
+        Foundation::BOOL,
         Foundation::*,
         Graphics::{
             Direct2D::{Common::*, *},
@@ -62,7 +63,7 @@ impl TextRenderer {
     }
 }
 
-impl IDWriteTextRenderer_Impl for TextRenderer {
+impl IDWriteTextRenderer_Impl for TextRenderer_Impl {
     fn DrawGlyphRun(
         &self,
         _clientdrawingcontext: *const ::core::ffi::c_void,
@@ -140,7 +141,7 @@ impl IDWriteTextRenderer_Impl for TextRenderer {
     }
 }
 
-impl IDWritePixelSnapping_Impl for TextRenderer {
+impl IDWritePixelSnapping_Impl for TextRenderer_Impl {
     fn IsPixelSnappingDisabled(
         &self,
         _clientdrawingcontext: *const ::core::ffi::c_void,

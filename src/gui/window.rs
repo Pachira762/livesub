@@ -1,15 +1,20 @@
 use anyhow::Result;
-use std::mem::transmute;
+use std::mem::{size_of_val, transmute};
 use windows::{
     core::{s, PCWSTR},
     Win32::{
         Foundation::*,
         Graphics::{
-            Dwm::{DwmSetWindowAttribute, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND},
+            Dwm::{
+                DwmDefWindowProc, DwmExtendFrameIntoClientArea, DwmSetWindowAttribute,
+                DWMSBT_TRANSIENTWINDOW, DWMWA_NCRENDERING_POLICY, DWMWA_SYSTEMBACKDROP_TYPE,
+                DWMWA_USE_IMMERSIVE_DARK_MODE, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND,
+            },
             Gdi::*,
         },
         System::LibraryLoader::GetModuleHandleA,
         UI::{
+            Controls::MARGINS,
             HiDpi::{AdjustWindowRectExForDpi, GetDpiForWindow},
             Input::KeyboardAndMouse::VK_ESCAPE,
             WindowsAndMessaging::*,
@@ -175,7 +180,7 @@ pub fn run_app<T: WinApp>() -> Result<()> {
             None,
             instance,
             Some(&mut window as *mut _ as *const _),
-        );
+        )?;
         window.bind_window(config, hwnd)?;
 
         UpdateWindow(hwnd);
@@ -199,9 +204,25 @@ pub fn run_app<T: WinApp>() -> Result<()> {
 
 extern "system" fn wndproc<T: WinApp>(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
     unsafe {
+        let mut dwm_result = LRESULT(0);
+        let dwm_proc: bool = DwmDefWindowProc(hwnd, msg, wp, lp, &mut dwm_result).into();
+
         match msg {
             WM_CREATE => {
+                let mut rc = RECT::default();
+                GetWindowRect(hwnd, &mut rc);
+                SetWindowPos(
+                    hwnd,
+                    None,
+                    rc.left,
+                    rc.top,
+                    rc.right - rc.left,
+                    rc.bottom - rc.top,
+                    SWP_FRAMECHANGED,
+                );
+
                 round_window_rect(hwnd);
+                update_dwm(hwnd);
 
                 let cs: &CREATESTRUCTA = transmute(lp);
                 SetWindowLongPtrA(hwnd, GWLP_USERDATA, cs.lpCreateParams as _);
@@ -211,7 +232,12 @@ extern "system" fn wndproc<T: WinApp>(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPAR
                 PostQuitMessage(0);
                 LRESULT(0)
             }
+            WM_DWMNCRENDERINGCHANGED => {
+                update_dwm(hwnd);
+                LRESULT(0)
+            }
             WM_NCCALCSIZE => nc_calc_size(hwnd, wp, lp),
+            WM_NCHITTEST if dwm_proc => dwm_result,
             _ => {
                 let ptr = GetWindowLongPtrA(hwnd, GWLP_USERDATA);
                 let mut window = std::ptr::NonNull::<Window<T>>::new(ptr as _);
@@ -238,8 +264,12 @@ fn round_window_rect(hwnd: HWND) {
     }
 }
 
-fn nc_calc_size(_hwnd: HWND, _wp: WPARAM, _lp: LPARAM) -> LRESULT {
-    LRESULT(0)
+fn nc_calc_size(hwnd: HWND, wp: WPARAM, lp: LPARAM) -> LRESULT {
+    if wp == WPARAM(1) {
+        LRESULT(0)
+    } else {
+        unsafe { DefWindowProcA(hwnd, WM_NCCALCSIZE, wp, lp) }
+    }
 }
 
 fn nc_hit_test(hwnd: HWND) -> LRESULT {
@@ -308,5 +338,53 @@ fn nc_hit_test(hwnd: HWND) -> LRESULT {
         (FrameA, FrameB) => LRESULT(HTBOTTOMLEFT as _),
         (Client, FrameB) => LRESULT(HTBOTTOM as _),
         (FrameB, FrameB) => LRESULT(HTBOTTOMRIGHT as _),
+    }
+}
+
+fn extend_frame(hwnd: HWND) {
+    unsafe {
+        DwmExtendFrameIntoClientArea(
+            hwnd,
+            &MARGINS {
+                cxLeftWidth: -1,
+                cxRightWidth: -1,
+                cyTopHeight: -1,
+                cyBottomHeight: -1,
+            },
+        )
+        .expect("failed extend frame");
+    }
+}
+
+fn update_dwm(hwnd: HWND) {
+    unsafe {
+        extend_frame(hwnd);
+
+        let policy = BOOL(1);
+        DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_NCRENDERING_POLICY,
+            &policy as *const _ as _,
+            size_of_val(&policy) as u32,
+        )
+        .expect("failed enable dwm policy");
+
+        let darkmode = BOOL(1);
+        DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_USE_IMMERSIVE_DARK_MODE,
+            &darkmode as *const _ as _,
+            size_of_val(&darkmode) as u32,
+        )
+        .expect("failed enable darkmode");
+
+        let attr = DWMSBT_TRANSIENTWINDOW;
+        DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_SYSTEMBACKDROP_TYPE,
+            &attr as *const _ as _,
+            size_of_val(&attr) as u32,
+        )
+        .expect("failed system backdrop policy");
     }
 }

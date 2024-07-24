@@ -21,7 +21,7 @@ impl<'a> MenuBuilder<'a> {
     ) -> Self {
         Self {
             menu,
-            submenu: HMENU(0),
+            submenu: HMENU::default(),
             checkboxes,
             radio_groups,
         }
@@ -91,7 +91,7 @@ impl<'a> MenuBuilder<'a> {
             anyhow::bail!("no valid submenu.");
         }
 
-        self.submenu = HMENU(0);
+        self.submenu = HMENU::default();
         Ok(self)
     }
 
@@ -141,7 +141,7 @@ fn insert_menu_item(menu: HMENU, mut item: MenuItem) -> Result<()> {
                 MFT_STRING,
                 MFS_ENABLED,
                 *id,
-                HMENU(0),
+                HMENU::default(),
                 PSTR(text.as_mut_ptr()),
             ),
             MenuItem::Check { id, text, checked } => (
@@ -149,7 +149,7 @@ fn insert_menu_item(menu: HMENU, mut item: MenuItem) -> Result<()> {
                 MFT_STRING,
                 if *checked { MFS_CHECKED } else { MFS_ENABLED },
                 *id,
-                HMENU(0),
+                HMENU::default(),
                 PSTR(text.as_mut_ptr()),
             ),
             MenuItem::Radio { id, text, checked } => (
@@ -157,7 +157,7 @@ fn insert_menu_item(menu: HMENU, mut item: MenuItem) -> Result<()> {
                 MFT_STRING | MFT_RADIOCHECK,
                 if *checked { MFS_CHECKED } else { MFS_ENABLED },
                 *id,
-                HMENU(0),
+                HMENU::default(),
                 PSTR(text.as_mut_ptr()),
             ),
             MenuItem::SubMenu { submenu, text } => (
@@ -173,7 +173,7 @@ fn insert_menu_item(menu: HMENU, mut item: MenuItem) -> Result<()> {
                 MFT_SEPARATOR,
                 MFS_ENABLED,
                 0,
-                HMENU(0),
+                HMENU::default(),
                 PSTR::null(),
             ),
         };

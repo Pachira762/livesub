@@ -1,5 +1,0 @@
-[env]
-CUDA_COMPUTE_CAP="61"
-
-[target.x86_64-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+sse2"]
