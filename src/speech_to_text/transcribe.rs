@@ -1,22 +1,28 @@
-use anyhow::{Error as E, Result};
+use anyhow::Result;
 use candle::{Device, IndexOp, Tensor};
 use candle_nn::VarBuilder;
 use candle_transformers::models::whisper::{self as m, model::Whisper, Config};
 use hf_hub::{api::sync::Api, Repo};
 use tokenizers::Tokenizer;
 
-pub struct Decoder {
+use super::mel::MelSpectrogram;
+
+pub struct Transcriber {
     device: Device,
-    model: Whisper,
     config: Config,
-    tokenizer: Tokenizer,
-    initial_tokens: Vec<u32>,
-    eot_token: u32,
+
+    model: Whisper,
     suppress_tokens: Tensor,
+
+    tokenizer: Tokenizer,
     tokens: Vec<u32>,
+    initial_tokens: Vec<u32>,
+    interrupt_tokens: Vec<u32>,
+
+    melspec: MelSpectrogram,
 }
 
-impl Decoder {
+impl Transcriber {
     pub fn new(repo_id: &str) -> Result<Self> {
         let device = Device::new_cuda(0)?;
 
@@ -36,28 +42,17 @@ impl Decoder {
             (
                 m::model::Whisper::load(&vb, config.clone())?,
                 config,
-                Tokenizer::from_file(tokenizer).map_err(E::msg)?,
+                Tokenizer::from_file(tokenizer).map_err(anyhow::Error::msg)?,
             )
         };
-
-        let (sot_token, task_token, no_timestamps_token, eot_token) = {
-            (
-                token_id(&tokenizer, m::SOT_TOKEN)?,
-                token_id(&tokenizer, m::TRANSCRIBE_TOKEN)?,
-                token_id(&tokenizer, m::NO_TIMESTAMPS_TOKEN)?,
-                token_id(&tokenizer, m::EOT_TOKEN)?,
-            )
-        };
-
-        let initial_tokens = vec![sot_token, task_token, no_timestamps_token];
 
         let suppress_tokens = {
             let suppress_tokens: Vec<f32> = (0..config.vocab_size as u32)
                 .map(|i| {
-                    if config.suppress_tokens.contains(&i) || i == no_timestamps_token {
+                    if config.suppress_tokens.contains(&i) {
                         f32::NEG_INFINITY
                     } else {
-                        0f32
+                        0.0
                     }
                 })
                 .collect();
@@ -65,43 +60,54 @@ impl Decoder {
             Tensor::new(suppress_tokens, &device)?
         };
 
+        let initial_tokens = vec![
+            tokenizer.token_to_id(m::SOT_TOKEN).unwrap(),
+            tokenizer.token_to_id(m::TRANSCRIBE_TOKEN).unwrap(),
+            tokenizer.token_to_id(m::NO_TIMESTAMPS_TOKEN).unwrap(),
+        ];
+
+        let mut interrupt_tokens = vec![tokenizer.token_to_id(m::EOT_TOKEN).unwrap()];
+        if let Some(token) = tokenizer.token_to_id(m::NO_SPEECH_TOKENS[0]) {
+            interrupt_tokens.push(token);
+        }
+        if let Some(token) = tokenizer.token_to_id(m::NO_SPEECH_TOKENS[1]) {
+            interrupt_tokens.push(token);
+        }
+
+        let melspec = MelSpectrogram::new(config.num_mel_bins)?;
+
         Ok(Self {
             device,
-            model,
             config,
-            tokenizer,
-            initial_tokens,
-            eot_token,
+            model,
             suppress_tokens,
+            tokenizer,
             tokens: vec![],
+            initial_tokens,
+            interrupt_tokens,
+            melspec,
         })
     }
 
-    pub fn process(&mut self, mel: &[f32], new_segment: bool) -> Result<String> {
-        if new_segment || self.tokens.is_empty() {
-            self.tokens = self.initial_tokens.clone();
-        } else {
-            self.forget_tokens(2);
-        }
-
-        let mel = {
+    pub fn transcribe(&mut self, audio: &[f32]) -> Result<Option<(String, bool)>> {
+        let (features, is_new_segment) = if let Some((mel, is_new_segment)) =
+            self.melspec.decode(audio)
+        {
             let mel_len = mel.len();
             let num_mel_bins = self.config.num_mel_bins;
-            Tensor::from_slice(mel, (1, num_mel_bins, mel_len / num_mel_bins), &self.device)?
+            let mel =
+                Tensor::from_slice(mel, (1, num_mel_bins, mel_len / num_mel_bins), &self.device)?;
+            let features = self.model.encoder.forward(&mel, is_new_segment)?;
+            (features, is_new_segment)
+        } else {
+            return Ok(None);
         };
 
-        self.decode(&mel, new_segment)?;
-
-        let text = self.tokenizer.decode(&self.tokens, true).map_err(E::msg)?;
-        Ok(text)
-    }
-
-    pub fn clear(&mut self) {
-        self.tokens.clear();
-    }
-
-    fn decode(&mut self, mel: &Tensor, flush: bool) -> Result<()> {
-        let features = self.model.encoder.forward(mel, flush)?;
+        if is_new_segment || self.tokens.is_empty() {
+            self.init_tokens();
+        } else {
+            self.forget_tokens(4);
+        }
 
         for i in 0.. {
             let tokens_t = Tensor::new(self.tokens.as_slice(), &self.device)?.unsqueeze(0)?;
@@ -124,7 +130,7 @@ impl Decoder {
                 .map(|(i, _)| i as u32)
                 .unwrap();
 
-            if next_token == self.eot_token {
+            if self.interrupt_tokens.contains(&next_token) {
                 break;
             }
 
@@ -135,23 +141,26 @@ impl Decoder {
             }
         }
 
-        Ok(())
+        let text = self
+            .tokenizer
+            .decode(&self.tokens, true)
+            .map_err(anyhow::Error::msg)?;
+
+        Ok(Some((text, is_new_segment)))
+    }
+
+    pub fn clear(&mut self) {
+        self.tokens.clear();
+        self.melspec.clear();
+    }
+
+    fn init_tokens(&mut self) {
+        self.tokens = self.initial_tokens.clone();
     }
 
     fn forget_tokens(&mut self, n_forget: usize) {
-        let n_remain = self.tokens.len().saturating_sub(n_forget);
-        let n_init: usize = self.initial_tokens.len();
-        self.tokens.truncate(n_remain.max(n_init));
-    }
-
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-}
-
-fn token_id(tokenizer: &Tokenizer, token: &str) -> candle::Result<u32> {
-    match tokenizer.token_to_id(token) {
-        None => candle::bail!("no token-id for {token}"),
-        Some(id) => Ok(id),
+        let n_initial = self.initial_tokens.len();
+        let len = self.tokens.len().saturating_sub(n_forget).max(n_initial);
+        self.tokens.truncate(len);
     }
 }

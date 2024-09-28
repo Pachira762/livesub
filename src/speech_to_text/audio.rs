@@ -1,98 +1,51 @@
 use anyhow::Result;
-use rubato::{Resampler, SincFixedOut, SincInterpolationParameters};
+use rubato::{Resampler as _, SincFixedOut, SincInterpolationParameters};
 use windows::Win32::{
     Media::{Audio::*, Multimedia::WAVE_FORMAT_IEEE_FLOAT},
     System::Com::*,
 };
 
-pub struct AudioBuffer {
-    capture: AudioCapture,
-    resampler: SincFixedOut<f32>,
-    buffer: Vec<f32>,
+pub struct Audio {
+    raw: Vec<f32>,
     resampled: Vec<f32>,
+
+    capture: AudioCapture,
+    resampler: Resampler,
 }
 
-impl AudioBuffer {
+impl Audio {
     pub fn new(sample_rate: u32) -> Result<Self> {
         let capture = AudioCapture::new()?;
-        let resampler = {
-            let params = SincInterpolationParameters {
-                sinc_len: 256,
-                f_cutoff: 0.95,
-                oversampling_factor: 256,
-                interpolation: rubato::SincInterpolationType::Linear,
-                window: rubato::WindowFunction::BlackmanHarris2,
-            };
-
-            let sample_rate_in = capture.sample_rate();
-            let sample_rate_out = sample_rate;
-            SincFixedOut::<f32>::new(
-                sample_rate_out as f64 / sample_rate_in as f64,
-                8.0,
-                params,
-                1024,
-                1,
-            )
-            .map_err(anyhow::Error::msg)
-        }?;
+        let resampler = Resampler::new(capture.sample_rate(), sample_rate)?;
 
         Ok(Self {
+            raw: Vec::new(),
+            resampled: Vec::new(),
             capture,
             resampler,
-            buffer: vec![],
-            resampled: vec![],
         })
     }
 
     pub fn capture(&mut self) -> Result<&[f32]> {
-        self.capture.capture(&mut self.buffer)?;
+        self.capture.capture(&mut self.raw)?;
 
-        let (n_in, n_out) = self.resample()?;
-        _ = self.buffer.drain(..n_in);
+        self.resampled.clear();
+        self.resampler
+            .resample(&mut self.raw, &mut self.resampled)?;
 
-        Ok(&self.resampled[..n_out])
+        Ok(&self.resampled)
     }
 
-    fn resample(&mut self) -> Result<(usize, usize)> {
+    pub fn clear(&mut self) {
         self.resampled.clear();
-
-        let n_len = self.buffer.len();
-        let mut i_in = 0;
-        let mut i_out = 0;
-
-        loop {
-            let in_min = self.resampler.input_frames_next();
-            if n_len - i_in < in_min {
-                break;
-            }
-
-            let out_max = self.resampler.output_frames_max();
-            self.resampled.resize(i_out + out_max, 0.0);
-
-            let buf = &self.buffer[i_in..];
-            let out = &mut self.resampled[i_out..i_out + out_max];
-
-            let (n_in, n_out) = self
-                .resampler
-                .process_into_buffer(&[buf], &mut [out], None)?;
-
-            i_in += n_in;
-            i_out += n_out;
-        }
-
-        Ok((i_in, i_out))
+        self.raw.clear();
     }
 }
 
 struct AudioCapture {
-    #[allow(unused)]
-    audio_device: IMMDevice,
-
-    #[allow(unused)]
-    audio_client: IAudioClient,
-
+    _audio_device: IMMDevice,
+    _audio_client: IAudioClient,
     capture: IAudioCaptureClient,
-
     sample_rate: u32,
     n_ch: u32,
 }
@@ -112,6 +65,7 @@ impl AudioCapture {
                 CoTaskMemFree(Some(pwfx as *const _ as _));
                 (wfx.nChannels as u32, wfx.nSamplesPerSec)
             };
+
             let wfx = WAVEFORMATEX {
                 wFormatTag: WAVE_FORMAT_IEEE_FLOAT as _,
                 nChannels: n_ch as _,
@@ -137,8 +91,8 @@ impl AudioCapture {
             audio_client.Start()?;
 
             Ok(Self {
-                audio_device,
-                audio_client,
+                _audio_device: audio_device,
+                _audio_client: audio_client,
                 capture,
                 sample_rate,
                 n_ch,
@@ -164,15 +118,11 @@ impl AudioCapture {
                     None,
                 )?;
 
-                let offset = buf.len();
-                buf.resize(offset + n_frames as usize, 0.);
-
-                let frames = std::slice::from_raw_parts(frames, (self.n_ch * n_frames) as usize);
-                for i in 0..n_frames as usize {
-                    for j in 0..self.n_ch as usize {
-                        buf[offset + i] += frames[self.n_ch as usize * i + j];
-                    }
-                }
+                buf.extend(
+                    std::slice::from_raw_parts(frames, (self.n_ch * n_frames) as _)
+                        .chunks(self.n_ch as _)
+                        .map(|frame| frame.iter().sum::<f32>()),
+                );
 
                 self.capture.ReleaseBuffer(n_frames)?;
             }
@@ -183,5 +133,55 @@ impl AudioCapture {
 
     pub fn sample_rate(&self) -> u32 {
         self.sample_rate
+    }
+}
+
+struct Resampler {
+    resampler: SincFixedOut<f32>,
+}
+
+impl Resampler {
+    fn new(in_sample_rate: u32, out_sample_rate: u32) -> Result<Self> {
+        let parameters = SincInterpolationParameters {
+            sinc_len: 256,
+            f_cutoff: 0.95,
+            oversampling_factor: 256,
+            interpolation: rubato::SincInterpolationType::Linear,
+            window: rubato::WindowFunction::BlackmanHarris2,
+        };
+        let resample_ratio = out_sample_rate as f64 / in_sample_rate as f64;
+        let resampler = SincFixedOut::<f32>::new(resample_ratio, 8.0, parameters, 1024, 1)?;
+
+        Ok(Self { resampler })
+    }
+
+    fn resample(&mut self, input: &mut Vec<f32>, output: &mut Vec<f32>) -> Result<(usize, usize)> {
+        let mut i_in = 0;
+        let mut i_out = output.len();
+
+        loop {
+            let n_next = self.resampler.input_frames_next();
+            if input.len() < i_in + n_next {
+                break;
+            }
+
+            let out_max = self.resampler.output_frames_max();
+            output.resize(i_out + out_max, 0.0);
+
+            let wave_in = &input[i_in..i_in + n_next];
+            let wave_out = &mut output[i_out..i_out + out_max];
+
+            let (n_in, n_out) =
+                self.resampler
+                    .process_into_buffer(&[wave_in], &mut [wave_out], None)?;
+
+            i_in += n_in;
+            i_out += n_out;
+        }
+
+        _ = input.drain(..i_in);
+        output.resize(i_out, 0.0);
+
+        Ok((i_in, i_out))
     }
 }

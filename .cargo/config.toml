@@ -1,5 +1,2 @@
 [env]
-CUDA_COMPUTE_CAP="86"
-
-[target.x86_64-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+avx2"]
+CUDA_COMPUTE_CAP="61"

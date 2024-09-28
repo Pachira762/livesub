@@ -6,22 +6,20 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-byteorder = "1.5"
-hf-hub = "0.3"
-rubato = "0.15"
-rustfft = "6.2"
-serde_json = "1.0"
-tokenizers = "0.19"
-rust-ini = "0.21"
-strum = "0.26"
-strum_macros = "0.26"
-candle = { git = "https://github.com/huggingface/candle.git", package="candle-core", version = "0.6", features = ["cuda"]}
-candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.6", features = ["cuda"]}
-candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.6", features = ["cuda"]}
+anyhow = "1.0.89"
+rust-ini = "0.21.1"
+rubato = "0.16.0"
+rustfft = {version = "6.2.0", features = ["avx", "sse"] }
+byteorder = "1.5.0"
+serde_json = "1.0.128"
+hf-hub = "0.3.0"
+tokenizers = "0.20.0"
+candle = { version = "0.7.1", features = ["cuda"], package="candle-core"}
+candle-nn = { version = "0.7.1", features = ["cuda"]}
+candle-transformers = { version = "0.7.1", features = ["cuda"]}
 
 [dependencies.windows]
-version = "0.58"
+version = "0.58.0"
 features = [
     "implement",
     "Foundation_Numerics",
@@ -29,7 +27,6 @@ features = [
     "Win32_Graphics_Direct2D_Common",
     "Win32_Graphics_Direct3D",
     "Win32_Graphics_Direct3D11",
-    "Win32_Graphics_DirectComposition",
     "Win32_Graphics_DirectWrite",
     "Win32_Graphics_Dwm",
     "Win32_Graphics_Dxgi_Common",
@@ -38,14 +35,19 @@ features = [
     "Win32_Media_Multimedia",
     "Win32_System_Com",
     "Win32_System_LibraryLoader",
+    "Win32_System_WinRT",
+    "Win32_System_WinRT_Composition",
     "Win32_UI_Controls",
     "Win32_UI_HiDpi",
     "Win32_UI_Input_KeyboardAndMouse",
     "Win32_UI_WindowsAndMessaging",
+    "System",
+    "UI_Composition",
+    "UI_Composition_Desktop",
 ]
 
 [dependencies.windows-core]
-version = "0.58"
+version = "0.58.0"
 
 [build-dependencies]
-winres = "0.1"
+winres = "0.1.0"

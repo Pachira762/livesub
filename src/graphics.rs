@@ -1,6 +1,4 @@
-mod device;
+mod context;
 mod renderer;
-mod style;
-mod text;
 
 pub use renderer::Renderer;
