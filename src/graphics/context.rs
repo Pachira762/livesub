@@ -41,7 +41,7 @@ use windows::{
 };
 use windows_core::{implement, w, IUnknown, Interface as _, PCWSTR};
 
-use crate::gui::utils::{Hwnd, Wstr};
+use crate::gui::utils::{CStr, Hwnd};
 
 pub struct Context {
     pub swap_chain: IDXGISwapChain1,

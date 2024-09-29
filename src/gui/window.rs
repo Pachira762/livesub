@@ -24,6 +24,7 @@ use windows::{
         },
     },
 };
+use windows_core::s;
 
 use super::utils::{self, Hinstance, Hwnd as _, Rect};
 
@@ -120,7 +121,10 @@ pub unsafe extern "system" fn wndproc<T: Window>(
                     LRESULT(1)
                 }
                 Err(e) => {
-                    println!("{e:?}");
+                    unsafe {
+                        let text = format!("{e:?}\0");
+                        MessageBoxA(None, PCSTR(text.as_ptr()), s!("error"), MB_OK);
+                    }
                     LRESULT(0)
                 }
             }

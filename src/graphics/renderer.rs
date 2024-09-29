@@ -9,29 +9,28 @@ use windows::Win32::{
     },
 };
 
-use crate::gui::utils::Wstr;
+use crate::gui::utils::CStr;
 
 use super::context::Context;
 
 pub struct Renderer {
+    text: Vec<u16>,
     context: Context,
     format: Option<IDWriteTextFormat>,
     layout: Option<IDWriteTextLayout>,
-    rect: D2D_RECT_F,
-    text: Vec<u16>,
     font_name: String,
     font_size: u32,
     font_style_bold: bool,
     font_style_italic: bool,
     font_style_outline: bool,
     opacity: f32,
+    rect: D2D_RECT_F,
 }
 
 impl Renderer {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         hwnd: HWND,
-        text: &str,
         font_name: &str,
         font_size: u32,
         bold: bool,
@@ -44,21 +43,19 @@ impl Renderer {
 
         let context = Context::new(hwnd)?;
         let format = context.create_text_format(font_name, font_size, bold, italic)?;
-        let layout =
-            context.create_text_layout(&text.c_wstr(), &format, rect.width(), rect.height())?;
 
         Ok(Self {
+            text: vec![],
             context,
             format: Some(format),
-            layout: Some(layout),
-            rect,
-            text: text.c_wstr(),
+            layout: None,
             font_name: font_name.into(),
             font_size,
             font_style_bold: bold,
             font_style_italic: italic,
             font_style_outline: outline,
             opacity,
+            rect,
         })
     }
 

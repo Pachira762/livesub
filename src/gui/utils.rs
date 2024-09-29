@@ -59,17 +59,26 @@ macro_rules! GET_WHEEL_DELTA_WPARAM {
     };
 }
 
-pub trait Wstr {
+pub trait CStr {
+    fn c_str(&self) -> Vec<u8>;
     fn c_wstr(&self) -> Vec<u16>;
 }
 
-impl<'a> Wstr for &'a str {
+impl<'a> CStr for &'a str {
+    fn c_str(&self) -> Vec<u8> {
+        self.as_bytes().iter().copied().chain([0]).collect()
+    }
+
     fn c_wstr(&self) -> Vec<u16> {
         self.encode_utf16().chain([0]).collect()
     }
 }
 
-impl Wstr for String {
+impl CStr for String {
+    fn c_str(&self) -> Vec<u8> {
+        self.as_str().c_str()
+    }
+
     fn c_wstr(&self) -> Vec<u16> {
         self.as_str().c_wstr()
     }

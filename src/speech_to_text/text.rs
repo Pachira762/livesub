@@ -8,13 +8,13 @@ impl TextStream {
         Self(Arc::new(Mutex::new(TextStreamInner::new())))
     }
 
-    pub fn set(&mut self, text: String, is_new_segment: bool) {
+    pub fn set(&self, text: String, is_new_segment: bool) {
         if let Ok(mut inner) = self.0.lock() {
             inner.set(text, is_new_segment);
         }
     }
 
-    pub fn get(&mut self) -> Option<String> {
+    pub fn get(&self) -> Option<String> {
         if let Ok(mut inner) = self.0.lock() {
             inner.get()
         } else {
@@ -22,7 +22,7 @@ impl TextStream {
         }
     }
 
-    pub fn clear(&mut self) {
+    pub fn clear(&self) {
         if let Ok(mut inner) = self.0.lock() {
             inner.clear();
         }

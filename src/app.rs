@@ -84,7 +84,6 @@ impl GuiApp for App {
 
         let renderer = Renderer::new(
             hwnd,
-            &format!("loading {}", &config.model),
             &config.font_name,
             config.font_size,
             config.bold,
