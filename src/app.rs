@@ -137,6 +137,7 @@ impl GuiApp for App {
             CMD_MODEL_SMALL_EN => self.set_model(MODEL_SMALL_EN),
             CMD_MODEL_MEDIUM_EN => self.set_model(MODEL_MEDIUM_EN),
             CMD_MODEL_LARGE_V3 => self.set_model(MODEL_LARGE_V3),
+            CMD_MODEL_LARGE_V3_TURBO => self.set_model(MODEL_LARGE_V3_TURBO),
             CMD_DELAY_LOWEST => self.set_latency(DELAY_LOWEST),
             CMD_DELAY_LOW => self.set_latency(DELAY_LOW),
             CMD_DELAY_MEDIUM => self.set_latency(DELAY_MEDIUM),
@@ -188,6 +189,11 @@ impl GuiApp for App {
                     CMD_MODEL_LARGE_V3,
                     "distil-large-v3",
                     config.model == MODEL_LARGE_V3,
+                ),
+                radio!(
+                    CMD_MODEL_LARGE_V3_TURBO,
+                    "large-v3-turbo",
+                    config.model == MODEL_LARGE_V3_TURBO,
                 ),
             ),
             submenu!(
@@ -293,6 +299,7 @@ cmd!(1, 1, CMD_CLEAR);
 cmd!(2, 1, CMD_MODEL_SMALL_EN);
 cmd!(2, 2, CMD_MODEL_MEDIUM_EN);
 cmd!(2, 3, CMD_MODEL_LARGE_V3);
+cmd!(2, 4, CMD_MODEL_LARGE_V3_TURBO);
 cmd!(3, 1, CMD_DELAY_LOWEST);
 cmd!(3, 2, CMD_DELAY_LOW);
 cmd!(3, 3, CMD_DELAY_MEDIUM);
