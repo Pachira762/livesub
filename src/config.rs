@@ -8,7 +8,7 @@ use crate::gui::utils::Rect as _;
 pub const MODEL_SMALL_EN: &str = "distil-whisper/distil-small.en";
 pub const MODEL_MEDIUM_EN: &str = "distil-whisper/distil-medium.en";
 pub const MODEL_LARGE_V3: &str = "distil-whisper/distil-large-v3";
-pub const MODEL_LARGE_V3_TURBO: &str = "ylacombe/whisper-large-v3-turbo";
+pub const MODEL_LARGE_V3_TURBO: &str = "openai/whisper-large-v3-turbo";
 pub const DELAY_LOWEST: Duration = Duration::from_millis(10);
 pub const DELAY_LOW: Duration = Duration::from_millis(100);
 pub const DELAY_MEDIUM: Duration = Duration::from_millis(300);
