@@ -6,17 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.89"
+anyhow = "1.0.91"
 rust-ini = "0.21.1"
-rubato = "0.16.0"
+rubato = "0.16.1"
 rustfft = {version = "6.2.0", features = ["avx", "sse"] }
 byteorder = "1.5.0"
-serde_json = "1.0.128"
+serde_json = "1.0.132"
 hf-hub = "0.3.0"
-tokenizers = "0.20.0"
-candle = { version = "0.7.1", features = ["cuda"], package="candle-core"}
-candle-nn = { version = "0.7.1", features = ["cuda"]}
-candle-transformers = { version = "0.7.1", features = ["cuda"]}
+tokenizers = "0.20.1"
+candle = { version = "0.7.2", features = ["cuda"], package="candle-core"}
+candle-nn = { version = "0.7.2", features = ["cuda"]}
+candle-transformers = { version = "0.7.2", features = ["cuda"]}
 
 [dependencies.windows]
 version = "0.58.0"
