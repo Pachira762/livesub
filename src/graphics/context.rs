@@ -1,8 +1,7 @@
 use anyhow::{Error as E, Result};
 use windows::{
-    Foundation::Numerics::{Matrix3x2, Vector2},
     Win32::{
-        Foundation::{BOOL, FALSE, HWND},
+        Foundation::{FALSE, HWND},
         Graphics::{
             Direct2D::{
                 Common::{D2D1_COLOR_F, D2D_RECT_F},
@@ -16,13 +15,12 @@ use windows::{
                 D3D11_CREATE_DEVICE_FLAG, D3D11_SDK_VERSION,
             },
             DirectWrite::{
-                DWriteCreateFactory, IDWriteFactory, IDWriteInlineObject,
-                IDWritePixelSnapping_Impl, IDWriteTextFormat, IDWriteTextLayout,
-                IDWriteTextRenderer, IDWriteTextRenderer_Impl, DWRITE_FACTORY_TYPE_SHARED,
-                DWRITE_FONT_STRETCH_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STYLE_OBLIQUE,
-                DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_GLYPH_RUN,
-                DWRITE_GLYPH_RUN_DESCRIPTION, DWRITE_MATRIX, DWRITE_MEASURING_MODE,
-                DWRITE_STRIKETHROUGH, DWRITE_UNDERLINE,
+                DWriteCreateFactory, IDWriteFactory, IDWritePixelSnapping_Impl, IDWriteTextFormat,
+                IDWriteTextLayout, IDWriteTextRenderer, IDWriteTextRenderer_Impl,
+                DWRITE_FACTORY_TYPE_SHARED, DWRITE_FONT_STRETCH_NORMAL, DWRITE_FONT_STYLE_NORMAL,
+                DWRITE_FONT_STYLE_OBLIQUE, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_WEIGHT_REGULAR,
+                DWRITE_GLYPH_RUN, DWRITE_GLYPH_RUN_DESCRIPTION, DWRITE_MATRIX,
+                DWRITE_MEASURING_MODE, DWRITE_STRIKETHROUGH, DWRITE_UNDERLINE,
             },
             Dxgi::{
                 Common::{
@@ -39,7 +37,8 @@ use windows::{
     },
     UI::Composition::{CompositionStretch, Compositor, Desktop::DesktopWindowTarget},
 };
-use windows_core::{implement, w, IUnknown, Interface as _, PCWSTR};
+use windows_core::{implement, w, Interface as _, BOOL, PCWSTR};
+use windows_numerics::{Matrix3x2, Vector2};
 
 use crate::gui::utils::{CStr, Hwnd};
 
@@ -67,7 +66,7 @@ impl Context {
                     D3D11CreateDevice(
                         None,
                         D3D_DRIVER_TYPE_HARDWARE,
-                        None,
+                        Default::default(),
                         flags,
                         None,
                         D3D11_SDK_VERSION,
@@ -354,7 +353,7 @@ impl IDWriteTextRenderer_Impl for TextRenderer_Impl {
         _measuringmode: DWRITE_MEASURING_MODE,
         glyphrun: *const DWRITE_GLYPH_RUN,
         _glyphrundescription: *const DWRITE_GLYPH_RUN_DESCRIPTION,
-        _clientdrawingeffect: ::core::option::Option<&IUnknown>,
+        _clientdrawingeffect: windows_core::Ref<'_, windows_core::IUnknown>,
     ) -> ::windows::core::Result<()> {
         unsafe {
             let geometry = self.factory.CreatePathGeometry()?;
@@ -369,8 +368,12 @@ impl IDWriteTextRenderer_Impl for TextRenderer_Impl {
                 Some(glyphrun.glyphAdvances),
                 Some(glyphrun.glyphOffsets),
                 glyphrun.glyphCount,
-                glyphrun.isSideways,
-                BOOL(glyphrun.bidiLevel as i32 % 2),
+                glyphrun.isSideways.into(),
+                if (glyphrun.bidiLevel as i32 % 2) == 0 {
+                    false
+                } else {
+                    true
+                },
                 &sink,
             )?;
             sink.Close()?;
@@ -394,7 +397,7 @@ impl IDWriteTextRenderer_Impl for TextRenderer_Impl {
         _baselineoriginx: f32,
         _baselineoriginy: f32,
         _underline: *const DWRITE_UNDERLINE,
-        _clientdrawingeffect: ::core::option::Option<&::windows::core::IUnknown>,
+        _clientdrawingeffect: windows_core::Ref<'_, windows_core::IUnknown>,
     ) -> ::windows::core::Result<()> {
         todo!()
     }
@@ -405,7 +408,7 @@ impl IDWriteTextRenderer_Impl for TextRenderer_Impl {
         _baselineoriginx: f32,
         _baselineoriginy: f32,
         _strikethrough: *const DWRITE_STRIKETHROUGH,
-        _clientdrawingeffect: ::core::option::Option<&::windows::core::IUnknown>,
+        _clientdrawingeffect: windows_core::Ref<'_, windows_core::IUnknown>,
     ) -> ::windows::core::Result<()> {
         todo!()
     }
@@ -415,10 +418,13 @@ impl IDWriteTextRenderer_Impl for TextRenderer_Impl {
         _clientdrawingcontext: *const ::core::ffi::c_void,
         _originx: f32,
         _originy: f32,
-        _inlineobject: ::core::option::Option<&IDWriteInlineObject>,
+        _inlineobject: windows_core::Ref<
+            '_,
+            windows::Win32::Graphics::DirectWrite::IDWriteInlineObject,
+        >,
         _issideways: BOOL,
         _isrighttoleft: BOOL,
-        _clientdrawingeffect: ::core::option::Option<&::windows::core::IUnknown>,
+        _clientdrawingeffect: windows_core::Ref<'_, windows_core::IUnknown>,
     ) -> ::windows::core::Result<()> {
         todo!()
     }

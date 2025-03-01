@@ -171,7 +171,7 @@ fn nc_hit_test(hwnd: HWND, x: i32, y: i32) -> LRESULT {
         right: bx,
         bottom: by,
         ..
-    } = *RECT::default().adjusted(WS_OVERLAPPEDWINDOW, FALSE, WINDOW_EX_STYLE(0), hwnd.dpi());
+    } = *RECT::default().adjusted(WS_OVERLAPPEDWINDOW, false, WINDOW_EX_STYLE(0), hwnd.dpi());
 
     let col = if x < left + bx {
         0

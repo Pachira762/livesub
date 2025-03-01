@@ -6,11 +6,12 @@ use anyhow::Result;
 use windows::{
     core::{s, PCSTR, PSTR},
     Win32::{
-        Foundation::{FreeLibrary, BOOL, HWND},
+        Foundation::{FreeLibrary, HWND},
         System::LibraryLoader::{GetProcAddress, LoadLibraryExA, LOAD_LIBRARY_SEARCH_SYSTEM32},
         UI::WindowsAndMessaging::*,
     },
 };
+use windows_core::BOOL;
 
 use super::{
     app::MenuItem,
@@ -209,7 +210,7 @@ pub trait Menu: Into<HMENU> {
     }
 
     fn popup(self, flags: TRACK_POPUP_MENU_FLAGS, x: i32, y: i32, hwnd: HWND) -> Option<u32> {
-        match unsafe { TrackPopupMenu(self.into(), flags, x, y, 0, hwnd, None) } {
+        match unsafe { TrackPopupMenu(self.into(), flags, x, y, None, hwnd, None) } {
             BOOL(0) => None,
             BOOL(id) => Some(id as u32),
         }

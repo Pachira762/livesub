@@ -6,22 +6,21 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.91"
-rust-ini = "0.21.1"
-rubato = "0.16.1"
-rustfft = {version = "6.2.0", features = ["avx", "sse"] }
-byteorder = "1.5.0"
-serde_json = "1.0.132"
-hf-hub = "0.3.0"
-tokenizers = "0.20.1"
-candle = { version = "0.7.2", features = ["cuda"], package="candle-core"}
-candle-nn = { version = "0.7.2", features = ["cuda"]}
-candle-transformers = { version = "0.7.2", features = ["cuda"]}
+anyhow = "1.0"
+rust-ini = "0.21"
+rubato = "0.16"
+rustfft = {version = "6.2", features = ["avx", "sse"] }
+byteorder = "1.5"
+serde_json = "1.0"
+hf-hub = "0.4"
+tokenizers = "0.21"
+candle = { version = "0.8", features = ["cuda"], package="candle-core"}
+candle-nn = { version = "0.8", features = ["cuda"]}
+candle-transformers = { version = "0.8", features = ["cuda"]}
 
 [dependencies.windows]
-version = "0.58.0"
+version = "0.60"
 features = [
-    "implement",
     "Foundation_Numerics",
     "Win32_Globalization",
     "Win32_Graphics_Direct2D_Common",
@@ -34,7 +33,9 @@ features = [
     "Win32_Media_Audio",
     "Win32_Media_Multimedia",
     "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
     "Win32_System_LibraryLoader",
+    "Win32_System_Variant",
     "Win32_System_WinRT",
     "Win32_System_WinRT_Composition",
     "Win32_UI_Controls",
@@ -47,7 +48,10 @@ features = [
 ]
 
 [dependencies.windows-core]
-version = "0.58.0"
+version = "0.60"
+
+[dependencies.windows-numerics]
+version = "0.1"
 
 [build-dependencies]
-winres = "0.1.0"
+winres = "0.1"

@@ -7,7 +7,7 @@ mod window;
 use anyhow::Result;
 use viewer::Viewer;
 use windows::Win32::{
-    Foundation::{FreeLibrary, BOOL},
+    Foundation::FreeLibrary,
     System::{
         LibraryLoader::{GetProcAddress, LoadLibraryExA, LOAD_LIBRARY_SEARCH_SYSTEM32},
         WinRT::{
@@ -17,7 +17,7 @@ use windows::Win32::{
     },
     UI::WindowsAndMessaging::{DispatchMessageA, GetMessageA, TranslateMessage, MSG},
 };
-use windows_core::{s, PCSTR};
+use windows_core::{s, BOOL, PCSTR};
 
 use crate::config::Config;
 

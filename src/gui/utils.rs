@@ -2,7 +2,7 @@
 
 use anyhow::{Error as E, Result};
 use windows::{
-    core::{s, Param, PCSTR, PCWSTR},
+    core::{s, Param, BOOL, PCSTR, PCWSTR},
     Win32::{
         Foundation::*,
         Graphics::{
@@ -115,7 +115,7 @@ pub trait Rect: Sized {
     fn adjusted(
         &mut self,
         style: WINDOW_STYLE,
-        bmenu: BOOL,
+        bmenu: bool,
         ex_style: WINDOW_EX_STYLE,
         dpi: u32,
     ) -> &mut Self;
@@ -157,7 +157,7 @@ impl Rect for RECT {
     fn adjusted(
         &mut self,
         style: WINDOW_STYLE,
-        bmenu: BOOL,
+        bmenu: bool,
         ex_style: WINDOW_EX_STYLE,
         dpi: u32,
     ) -> &mut Self {
@@ -226,7 +226,7 @@ pub trait Hinstance {
 impl Hinstance for HINSTANCE {}
 
 pub trait Hwnd: Copy + Into<HWND> {
-    fn create<P0, P1>(
+    fn create(
         exstyle: WINDOW_EX_STYLE,
         classname: PCSTR,
         windowname: PCSTR,
@@ -235,14 +235,10 @@ pub trait Hwnd: Copy + Into<HWND> {
         y: i32,
         width: i32,
         height: i32,
-        parent: P0,
-        menu: P1,
+        parent: Option<HWND>,
+        menu: Option<HMENU>,
         param: Option<*const std::ffi::c_void>,
-    ) -> Result<HWND>
-    where
-        P0: Param<HWND>,
-        P1: Param<HMENU>,
-    {
+    ) -> Result<HWND> {
         unsafe {
             CreateWindowExA(
                 exstyle,
@@ -255,7 +251,7 @@ pub trait Hwnd: Copy + Into<HWND> {
                 height,
                 parent,
                 menu,
-                HINSTANCE::get(),
+                Some(HINSTANCE::get()),
                 param,
             )
             .map_err(anyhow::Error::msg)
@@ -387,7 +383,7 @@ pub trait Hwnd: Copy + Into<HWND> {
 
     fn post_message(self, msg: u32, wp: WPARAM, lp: LPARAM) {
         unsafe {
-            PostMessageA(self.into(), msg, wp, lp);
+            PostMessageA(Some(self.into()), msg, wp, lp);
         }
     }
 
@@ -409,7 +405,7 @@ pub trait Hwnd: Copy + Into<HWND> {
 
     fn validate_rect(self, rect: Option<*const RECT>) {
         unsafe {
-            _ = ValidateRect(self.into(), rect);
+            _ = ValidateRect(Some(self.into()), rect);
         }
     }
 
@@ -420,7 +416,7 @@ pub trait Hwnd: Copy + Into<HWND> {
     }
 
     fn set_timer(self, id: usize, elapse: u32) -> usize {
-        unsafe { SetTimer(self.into(), id, elapse, None) }
+        unsafe { SetTimer(Some(self.into()), id, elapse, None) }
     }
 
     fn scroll_info(
@@ -483,7 +479,7 @@ pub trait Hwnd: Copy + Into<HWND> {
                 info.nTrackPos = track;
             }
 
-            SetScrollInfo(self.into(), bar, &info, TRUE)
+            SetScrollInfo(self.into(), bar, &info, true)
         }
     }
 
@@ -637,7 +633,7 @@ pub fn load_icon(name: Option<PCWSTR>) -> HICON {
         Some(name) => (HINSTANCE::get(), name),
         None => (HINSTANCE::default(), IDI_APPLICATION),
     };
-    unsafe { LoadIconW(instance, name).unwrap() }
+    unsafe { LoadIconW(Some(instance), name).unwrap() }
 }
 
 pub fn load_cursor(name: Option<PCWSTR>) -> HCURSOR {
@@ -645,5 +641,5 @@ pub fn load_cursor(name: Option<PCWSTR>) -> HCURSOR {
         Some(name) => (HINSTANCE::get(), name),
         None => (HINSTANCE::default(), IDI_APPLICATION),
     };
-    unsafe { LoadCursorW(instance, name).unwrap() }
+    unsafe { LoadCursorW(Some(instance), name).unwrap() }
 }
