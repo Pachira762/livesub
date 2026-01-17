@@ -21,3 +21,4 @@ livesub.ini
 about.toml
 about.hbs
 license.html
+*.safetensors

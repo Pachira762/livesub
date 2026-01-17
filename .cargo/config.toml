@@ -1,5 +1,6 @@
 [build]
-rustflags=["-C", "target-feature=+sse4.1"]
+rustflags = ["-C", "target-feature=+sse4.2"]
 
 [env]
-CUDA_COMPUTE_CAP="61"
+NVCC_APPEND_FLAGS = "-allow-unsupported-compiler"
+CUDA_COMPUTE_CAP = "61"
